@@ -1,6 +1,6 @@
 {
   "name": "multi-account-netlify-mcp",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Multi-account Netlify MCP for Claude Code, Codex, opencode and Antigravity: one official @netlify/mcp server per account, with tool calls sent to one, several or all accounts.",
   "keywords": [
     "mcp",

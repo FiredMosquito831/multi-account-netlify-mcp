@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import os from 'node:os';
+import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { Writable } from 'node:stream';
@@ -143,6 +144,7 @@ const cliPath = (): string => fileURLToPath(import.meta.url);
 
 const makeContext = (projectDir: string | undefined, claudeSource: string | undefined): Context => ({
   home: os.homedir(),
+  codexHome: process.env.CODEX_HOME ?? path.join(os.homedir(), '.codex'),
   projectDir: projectDir ?? process.cwd(),
   cliPath: cliPath(),
   packageRoot: packageRoot(),

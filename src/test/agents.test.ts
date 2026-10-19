@@ -56,6 +56,7 @@ const sandbox = async (name: string): Promise<Sandbox> => {
       };
       return {
         home,
+        codexHome: path.join(home, '.codex'),
         projectDir: project,
         cliPath: CLI,
         packageRoot: REPO_ROOT,
@@ -151,7 +152,8 @@ describe('codex', () => {
       ['mcp', 'add'],
     ]);
     assert.deepEqual(box.calls[1].args, ['mcp', 'add', 'multi-account-netlify', '--', process.execPath, CLI, 'serve']);
-    assert.equal(readState('codex')[scopeKey('global', box.project)]?.length, 1);
+    // The server entry and the skill folder are both recorded.
+    assert.equal(readState('codex')[scopeKey('global', box.project)]?.length, 2);
   });
 
   it('global: is skipped, not an error, when codex is not on PATH', async () => {
@@ -283,14 +285,14 @@ describe('opencode', () => {
 });
 
 describe('antigravity', () => {
-  it('global: registers the server with agy mcp add, and says the skill is not installed', async () => {
+  it('global: registers the server with agy mcp add, and installs the skill', async () => {
     const box = await sandbox('agy-global');
     const steps = await antigravityAdapter.install(box.ctx(['agy']), 'global');
 
     assert.deepEqual(box.calls[0].args, ['mcp', 'add', 'multi-account-netlify', '--', process.execPath, CLI, 'serve']);
     assert.equal(steps[0].status, 'ok');
-    assert.equal(steps[1].status, 'skipped');
-    assert.match(steps[1].detail, /plugin/);
+    assert.equal(steps[1].status, 'ok');
+    assert.ok(existsSync(path.join(box.home, '.gemini', 'config', 'skills', 'netlify-accounts', 'SKILL.md')));
   });
 
   it('has no project scope, and says so', async () => {
@@ -364,6 +366,6 @@ describe('ownership', () => {
     const box = await sandbox('ownership-scopes');
     await codexAdapter.install(box.ctx(['codex']), 'project');
     assert.equal(readState('codex')[scopeKey('global', box.project)], undefined);
-    assert.equal(readState('codex')[scopeKey('project', box.project)]?.length, 1);
+    assert.equal(readState('codex')[scopeKey('project', box.project)]?.length, 2);
   });
 });

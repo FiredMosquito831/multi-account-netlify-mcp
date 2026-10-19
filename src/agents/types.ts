@@ -20,6 +20,8 @@ export interface Step {
 export interface Context {
   // Where global agent configs live (normally the user's home folder).
   home: string;
+  // Codex's home folder: CODEX_HOME if it is set, otherwise ~/.codex. Its skills and config live here.
+  codexHome: string;
   // The folder for project and local scopes.
   projectDir: string;
   // dist/cli.js. Every agent starts the server with `node <cliPath> serve`.

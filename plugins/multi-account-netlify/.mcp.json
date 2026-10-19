@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "netlify": {
-      "command": "multi-account-netlify-mcp",
-      "args": ["serve"]
+      "command": "node",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/bin/launch.mjs"]
     }
   }
 }

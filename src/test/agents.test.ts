@@ -308,31 +308,6 @@ describe('antigravity', () => {
   });
 });
 
-describe('the Claude plugin starts the npm command from PATH', () => {
-  const NO_PLUGINS = { 'claude plugin marketplace list --json': ok('[]') };
-
-  it('warns when multi-account-netlify-mcp is not on PATH, and still installs the plugin', async () => {
-    const box = await sandbox('claude-path-missing');
-    const steps = await ADAPTERS.claude.install(box.ctx(['claude'], NO_PLUGINS), 'global');
-
-    const warning = steps.find((item) => item.status === 'warning');
-    assert.ok(warning, 'a warning step is returned');
-    assert.match(warning.detail, /npm install -g multi-account-netlify-mcp/);
-    assert.ok(
-      box.calls.some((call) => call.args.join(' ') === 'plugin install multi-account-netlify@multi-account-netlify-mcp --scope user'),
-      'the plugin is still installed, with no settings argument',
-    );
-  });
-
-  it('gives no warning when the command is on PATH', async () => {
-    const box = await sandbox('claude-path-present');
-    const steps = await ADAPTERS.claude.install(box.ctx(['claude', 'multi-account-netlify-mcp'], NO_PLUGINS), 'global');
-    assert.equal(
-      steps.some((item) => item.status === 'warning'),
-      false,
-    );
-  });
-});
 
 describe('dispatch', () => {
   it('installs into the agents set up here, and skips the rest', async () => {

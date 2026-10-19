@@ -115,8 +115,8 @@ Nothing was installed in the scope you asked for. Check with `doctor`.
 **The plugin is installed, but its tools do not appear**
 Restart Claude Code. Run `/mcp` to check that the `netlify` server is connected.
 
-**The plugin's server does not start, and `doctor` warns that `multi-account-netlify-mcp` is not on PATH**
-The plugin starts the command from PATH. Install the package with `npm install -g multi-account-netlify-mcp`, open a new terminal, check with `multi-account-netlify-mcp --help`, then restart Claude Code.
+**The plugin's server does not start**
+The plugin needs Node.js and npm (`node --version`, `npm --version`). Without a global install, the first start downloads the package and the Netlify CLI, which can take a few minutes on a slow connection. Restart Claude Code once it has finished. Installing globally with `npm install -g multi-account-netlify-mcp` skips the download.
 
 **`/plugin` asks for a `cli_path`**
 That is an older copy of the plugin. Update it with `claude plugin update multi-account-netlify@multi-account-netlify-mcp`, or run `multi-account-netlify-mcp update`.

@@ -74,13 +74,13 @@ Each `state/<agent>.json` records what an install wrote, so uninstall can remove
 | Antigravity | global | `~/.gemini/config/mcp_config.json`, through `agy mcp add` | the server entry |
 | Antigravity | global | `~/.gemini/config/skills/netlify-accounts/SKILL.md` | the account skill |
 
-- The Codex, opencode and Antigravity entries run `node <path-to-dist/cli.js> serve`. The `node` path is the one that installed the package. The Claude Code plugin is the exception: it runs `multi-account-netlify-mcp serve` from PATH.
+- The Codex, opencode and Antigravity entries run `node <path-to-dist/cli.js> serve`. The `node` path is the one that installed the package. The Claude Code plugin is the exception: it starts its launcher, described below.
 - A `.bak` copy is made before any change to an opencode file, and an invalid JSON file is never changed.
 - Codex reads a project's `.codex/config.toml` only in a folder you have trusted.
 
 ## The Claude Code plugin's command
 
-The Claude Code plugin's MCP server runs `multi-account-netlify-mcp serve`, the command that `npm install -g multi-account-netlify-mcp` puts on PATH. The plugin has no settings, so no machine path is stored in Claude Code or in a project file. Checked on Windows on 2026-10-19: the bare command connects when its `.cmd` shim is on PATH.
+The Claude Code plugin's MCP server starts `plugins/multi-account-netlify/bin/launch.mjs`. The launcher runs `multi-account-netlify-mcp serve` when that command is on PATH (after `npm install -g multi-account-netlify-mcp`). Otherwise it runs `npx -y multi-account-netlify-mcp@<version> serve`, with the version taken from the plugin manifest. The plugin has no settings, so no machine path is stored in Claude Code or in a project file. Checked on Windows on 2026-10-19: the bare command connects when its `.cmd` shim is on PATH, and the npx route connects with no global install.
 
 ## Package settings
 

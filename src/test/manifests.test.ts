@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFile, readdir } from 'node:fs/promises';
+import { access, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -37,13 +37,14 @@ describe('plugin manifests', () => {
     assert.equal(marketplace.metadata.version, pkg.version);
   });
 
-  it('the MCP launcher starts the npm-installed command from PATH, and the plugin needs no settings', async () => {
+  it('the MCP server starts the plugin launcher, and the plugin needs no settings', async () => {
     const manifest = await readJson(`plugins/${PLUGIN_NAME}/.claude-plugin/plugin.json`);
     const mcp = await readJson(`plugins/${PLUGIN_NAME}/.mcp.json`);
     const server = mcp.mcpServers.netlify;
-    assert.equal(server.command, 'multi-account-netlify-mcp');
-    assert.deepEqual(server.args, ['serve']);
+    assert.equal(server.command, 'node');
+    assert.deepEqual(server.args, ['${CLAUDE_PLUGIN_ROOT}/bin/launch.mjs']);
     assert.equal(manifest.userConfig, undefined);
+    await access(path.join(root, `plugins/${PLUGIN_NAME}/bin/launch.mjs`));
   });
 
   it('the launcher points at the built CLI that the package bin exposes', async () => {

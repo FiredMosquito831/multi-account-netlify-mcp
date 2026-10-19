@@ -5,10 +5,6 @@ import { step, type AgentAdapter, type AgentScope, type Context, type Step } fro
 // claude plugin commands for the three scopes (global is Claude Code's user scope).
 const runnerFor = (ctx: Context): ClaudeRunner => (args, options) => ctx.run('claude', args, options);
 
-// The plugin starts this command from PATH, so it has to be installed globally with npm.
-const SERVER_COMMAND = 'multi-account-netlify-mcp';
-const NOT_ON_PATH = `${SERVER_COMMAND} is not on PATH. The Claude Code plugin starts it from PATH: run npm install -g multi-account-netlify-mcp`;
-
 const sourceFor = (ctx: Context, scope: AgentScope): string =>
   ctx.claudeSource ?? (scope === 'global' ? ctx.packageRoot : GITHUB_SOURCE);
 
@@ -25,9 +21,6 @@ export const claudeAdapter: AgentAdapter = {
       return [step('claude', 'install', 'skipped', 'claude is not on PATH')];
     }
     const steps: Step[] = [];
-    if (!ctx.present(SERVER_COMMAND)) {
-      steps.push(step('claude', 'install', 'warning', NOT_ON_PATH));
-    }
     try {
       await installPlugin({
         scope,
@@ -74,25 +67,21 @@ export const claudeAdapter: AgentAdapter = {
     if (!ctx.present('claude')) {
       return [step('claude', 'plugin', 'skipped', 'claude is not on PATH')];
     }
-    const onPath = ctx.present(SERVER_COMMAND) ? [] : [step('claude', 'plugin', 'warning', NOT_ON_PATH)];
     try {
       const installs = await listInstalls(runnerFor(ctx));
       if (installs.length === 0) {
-        return [...onPath, step('claude', 'plugin', 'skipped', 'not installed in any scope')];
+        return [step('claude', 'plugin', 'skipped', 'not installed in any scope')];
       }
-      return [
-        ...onPath,
-        ...installs.map((install) =>
-          step(
-            'claude',
-            'plugin',
-            install.scope === 'global' || install.enabled ? 'ok' : 'warning',
-            `${install.scope}${install.projectPath ? ` at ${install.projectPath}` : ''}: ${install.enabled ? 'enabled' : 'disabled'}`,
-          ),
+      return installs.map((install) =>
+        step(
+          'claude',
+          'plugin',
+          install.scope === 'global' || install.enabled ? 'ok' : 'warning',
+          `${install.scope}${install.projectPath ? ` at ${install.projectPath}` : ''}: ${install.enabled ? 'enabled' : 'disabled'}`,
         ),
-      ];
+      );
     } catch (error) {
-      return [...onPath, step('claude', 'plugin', 'error', (error as Error).message)];
+      return [step('claude', 'plugin', 'error', (error as Error).message)];
     }
   },
 };

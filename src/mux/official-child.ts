@@ -8,6 +8,9 @@ import { VERSION } from '../version.js';
 
 const require = createRequire(import.meta.url);
 
+// Longest a single tool call may take. Covers a large project upload in deploy-site.
+const TOOL_TIMEOUT_MS = 15 * 60_000;
+
 // The official package has no exports map, so its package.json and dist entry resolve directly.
 export const officialEntry = (): string => {
   const packageJsonPath = require.resolve('@netlify/mcp/package.json');
@@ -79,8 +82,10 @@ export class OfficialChild {
     return tools;
   }
 
+  // The SDK default is 60 seconds, which a large deploy-site upload can exceed while the deploy itself
+  // is still fine. Calls get this longer limit instead.
   callTool(name: string, args: Record<string, unknown>): Promise<CallToolResult> {
-    return this.#client.callTool({ name, arguments: args }) as Promise<CallToolResult>;
+    return this.#client.callTool({ name, arguments: args }, { timeout: TOOL_TIMEOUT_MS }) as Promise<CallToolResult>;
   }
 
   async close(): Promise<void> {

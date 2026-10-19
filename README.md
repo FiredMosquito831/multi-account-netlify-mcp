@@ -22,6 +22,29 @@ multi-account-netlify-mcp default work
 
 No browser on this machine? `multi-account-netlify-mcp add work --pat` asks for a Netlify personal access token instead. The token is hidden while you type it.
 
+### Scopes
+
+`install` takes the same three scopes as Claude Code's plugin manager. `global` is the default.
+
+| Scope | Where it applies | Recorded in | Shared through git |
+|---|---|---|---|
+| `global` (default) | every folder, for your user account | Claude Code's user settings | no |
+| `project` | the folder you pick | `.claude/settings.json` | yes, commit it |
+| `local` | the folder you pick, only for you | `.claude/settings.local.json` | no |
+
+```sh
+multi-account-netlify-mcp install                                  # global
+multi-account-netlify-mcp install --scope project                  # the current folder, shared through git
+multi-account-netlify-mcp install --scope local                    # the current folder, not shared
+multi-account-netlify-mcp install --scope project --project-dir D:\work\app
+multi-account-netlify-mcp update                                   # every scope where it is installed
+multi-account-netlify-mcp uninstall --scope local                  # one scope; the default is all
+```
+
+`uninstall` and `update` default to `all`: the global install, plus any project or local install in the current folder. A project or local install of another folder is left alone.
+
+A project install is safe to commit, because it holds the marketplace (from GitHub) and the plugin reference, not your machine's paths. The `cli_path` setting holds this machine's path and is not committed. Each teammate runs `install --scope project` once on their own machine.
+
 ### Install through the Claude Code plugin manager
 
 After the npm install, you can also use Claude Code's own plugin commands. The plugin needs the path to the installed CLI, so get it first:
@@ -84,7 +107,7 @@ Then restart Claude Code. `update` refreshes the plugin. The npm command also up
 
 ```sh
 multi-account-netlify-mcp remove work       # once per account; deletes its stored token
-multi-account-netlify-mcp uninstall         # removes the Claude Code plugin
+multi-account-netlify-mcp uninstall         # removes the plugin from every scope here (add --scope to pick one)
 npm uninstall -g multi-account-netlify-mcp
 ```
 

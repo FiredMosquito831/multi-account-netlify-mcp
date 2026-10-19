@@ -26,7 +26,8 @@
     "multi-account-netlify-mcp": "./dist/cli.js"
   },
   "files": [
-    "dist/*",
+    "dist/",
+    "!dist/test/",
     ".claude-plugin/",
     "plugins/",
     "README.md"
@@ -37,7 +38,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test \"dist/test/*.test.js\""
+    "test": "npm run build && node --test \"dist/test/*.test.js\"",
+    "prepack": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/client": "^2.3.1",

@@ -40,7 +40,6 @@ const fakeClaude = (answers: { marketplaces?: string[]; plugins?: unknown[]; fai
 
 const baseOptions = {
   source: 'D:/npm/node_modules/multi-account-netlify-mcp',
-  cliPath: 'D:/npm/node_modules/multi-account-netlify-mcp/dist/cli.js',
 };
 
 describe('parseScope', () => {
@@ -62,14 +61,14 @@ describe('parseScope', () => {
 });
 
 describe('installPlugin', () => {
-  it('global: adds the marketplace once in user scope, then installs with cli_path', async () => {
+  it('global: adds the marketplace once in user scope, then installs with no settings', async () => {
     const fake = fakeClaude({ marketplaces: [] });
     await installPlugin({ ...baseOptions, scope: 'global', run: fake.run });
 
     assert.deepEqual(fake.calls.map((call) => call.args), [
       ['plugin', 'marketplace', 'list', '--json'],
       ['plugin', 'marketplace', 'add', baseOptions.source, '--scope', 'user'],
-      ['plugin', 'install', PLUGIN_ID, '--scope', 'user', '--config', `cli_path=${baseOptions.cliPath}`],
+      ['plugin', 'install', PLUGIN_ID, '--scope', 'user'],
     ]);
   });
 
@@ -86,7 +85,7 @@ describe('installPlugin', () => {
 
     assert.deepEqual(fake.calls.map((call) => call.args), [
       ['plugin', 'marketplace', 'add', GITHUB_SOURCE, '--scope', 'project'],
-      ['plugin', 'install', PLUGIN_ID, '--scope', 'project', '--config', `cli_path=${baseOptions.cliPath}`],
+      ['plugin', 'install', PLUGIN_ID, '--scope', 'project'],
     ]);
     assert.ok(fake.calls.every((call) => call.cwd === 'D:/work/app'));
   });

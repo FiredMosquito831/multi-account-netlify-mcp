@@ -103,8 +103,6 @@ export interface InstallOptions {
   scope: Scope;
   // Folder or GitHub repo that holds the marketplace. The CLI chooses the default for the scope.
   source: string;
-  // Absolute path to dist/cli.js. Stored as the plugin's cli_path setting, used by .mcp.json.
-  cliPath: string;
   // Folder for project and local scope. Defaults to the current folder.
   projectDir?: string;
   dryRun?: boolean;
@@ -137,7 +135,8 @@ export const installPlugin = async (options: InstallOptions): Promise<Step[]> =>
       marketplaceArgs = ['plugin', 'marketplace', 'update', MARKETPLACE_NAME];
     }
   }
-  const installArgs = ['plugin', 'install', PLUGIN_ID, '--scope', claudeScope, '--config', `cli_path=${options.cliPath}`];
+  // The plugin starts multi-account-netlify-mcp from PATH, so it needs no setting.
+  const installArgs = ['plugin', 'install', PLUGIN_ID, '--scope', claudeScope];
 
   for (const args of [marketplaceArgs, installArgs]) {
     if (options.dryRun) {

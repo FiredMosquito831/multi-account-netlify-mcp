@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "netlify": {
-      "command": "node",
-      "args": ["${user_config.cli_path}", "serve"]
+      "command": "multi-account-netlify-mcp",
+      "args": ["serve"]
     }
   }
 }

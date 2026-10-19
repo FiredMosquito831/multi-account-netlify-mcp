@@ -54,7 +54,7 @@ src/
 
 plugins/multi-account-netlify/
   .claude-plugin/plugin.json   the plugin manifest
-  .mcp.json                    the server, run as node ${user_config.cli_path} serve
+  .mcp.json                    the server, started as multi-account-netlify-mcp serve from PATH
   commands/                    the five account commands
   skills/netlify-accounts/     the account skill, copied to every agent
 

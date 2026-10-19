@@ -8,6 +8,7 @@ All notable changes to this project. Dates are when the change landed.
 - **Help on a bare run.** With no command, a terminal shows the help, which gives the server start command (`multi-account-netlify-mcp serve`). An agent still gets the server.
 - **Clean-up after a login.** The token file is deleted first, and the clean-up no longer fails a login when the browser still holds the profile folder open.
 - **Release checks.** `docs/RELEASING.md` has a check for secrets and personal data before a push or a publish. The workflows pin their actions to commit SHAs.
+- **The Claude Code plugin needs no settings.** It starts `multi-account-netlify-mcp` from PATH, like ase-moodle-mcp, so `/plugin marketplace add` and `/plugin install` finish without asking for a path. Install the npm package first. `install` and `doctor` warn when the command is not on PATH.
 
 ## 0.1.3
 

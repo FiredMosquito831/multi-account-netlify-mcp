@@ -115,8 +115,11 @@ Nothing was installed in the scope you asked for. Check with `doctor`.
 **The plugin is installed, but its tools do not appear**
 Restart Claude Code. Run `/mcp` to check that the `netlify` server is connected.
 
-**`${user_config.cli_path}` is empty or the server does not start**
-The plugin was added through the plugin manager without the `cli_path` setting. Run `multi-account-netlify-mcp install --scope <scope>` to fill it in, or set it in `/plugin`.
+**The plugin's server does not start, and `doctor` warns that `multi-account-netlify-mcp` is not on PATH**
+The plugin starts the command from PATH. Install the package with `npm install -g multi-account-netlify-mcp`, open a new terminal, check with `multi-account-netlify-mcp --help`, then restart Claude Code.
+
+**`/plugin` asks for a `cli_path`**
+That is an older copy of the plugin. Update it with `claude plugin update multi-account-netlify@multi-account-netlify-mcp`, or run `multi-account-netlify-mcp update`.
 
 **A marketplace is still registered after uninstall**
 That is expected. Remove it with `claude plugin marketplace remove multi-account-netlify-mcp` if no folder needs it.

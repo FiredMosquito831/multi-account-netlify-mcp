@@ -61,7 +61,7 @@ Each `state/<agent>.json` records what an install wrote, so uninstall can remove
 
 | Agent | Scope | File or command | What is written |
 |---|---|---|---|
-| Claude Code | global | Claude Code's user settings, through `claude plugin` | the plugin, and `cli_path` as a user setting |
+| Claude Code | global | Claude Code's user settings, through `claude plugin` | the plugin (it has no settings) |
 | Claude Code | project | `<folder>/.claude/settings.json` | the marketplace (GitHub) and the plugin reference |
 | Claude Code | local | `<folder>/.claude/settings.local.json` | the marketplace (GitHub) and the plugin reference |
 | Codex | global | `$CODEX_HOME/config.toml`, through `codex mcp add` | `[mcp_servers.multi-account-netlify]` |
@@ -74,13 +74,13 @@ Each `state/<agent>.json` records what an install wrote, so uninstall can remove
 | Antigravity | global | `~/.gemini/config/mcp_config.json`, through `agy mcp add` | the server entry |
 | Antigravity | global | `~/.gemini/config/skills/netlify-accounts/SKILL.md` | the account skill |
 
-- Every server entry runs `node <path-to-dist/cli.js> serve`. The `node` path is the one that installed the package.
+- The Codex, opencode and Antigravity entries run `node <path-to-dist/cli.js> serve`. The `node` path is the one that installed the package. The Claude Code plugin is the exception: it runs `multi-account-netlify-mcp serve` from PATH.
 - A `.bak` copy is made before any change to an opencode file, and an invalid JSON file is never changed.
 - Codex reads a project's `.codex/config.toml` only in a folder you have trusted.
 
-## The plugin setting: `cli_path`
+## The Claude Code plugin's command
 
-The Claude Code plugin's MCP server runs `node ${user_config.cli_path} serve`. `cli_path` is the absolute path of `dist/cli.js` of the installed package. The installer sets it. It is a user setting, stored by Claude Code, and not part of the project file, so a committed project does not hold this machine's path.
+The Claude Code plugin's MCP server runs `multi-account-netlify-mcp serve`, the command that `npm install -g multi-account-netlify-mcp` puts on PATH. The plugin has no settings, so no machine path is stored in Claude Code or in a project file. Checked on Windows on 2026-10-19: the bare command connects when its `.cmd` shim is on PATH.
 
 ## Package settings
 

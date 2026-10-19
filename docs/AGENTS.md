@@ -23,9 +23,9 @@ Installed as a plugin, through `claude plugin`.
 - **Marketplace:** `multi-account-netlify-mcp`. Global installs take it from the installed package folder. Project and local installs take it from GitHub, so the project file can be committed.
 - **Scopes:**
   - `global` (Claude Code's user scope): every folder. Recorded in Claude Code's user settings.
-  - `project`: recorded in `.claude/settings.json` in the folder. Commit it to share it with a team. Each teammate runs `install --scope project` once, because `cli_path` is this machine's path.
+  - `project`: recorded in `.claude/settings.json` in the folder. Commit it to share it with a team. Each teammate needs the npm package installed (`npm install -g multi-account-netlify-mcp`), because the plugin starts the command from PATH.
   - `local`: recorded in `.claude/settings.local.json` in the folder. Not shared. Claude Code keeps this file out of git.
-- **Plugin setting:** `cli_path`, the path of the installed `dist/cli.js`. It is a user setting stored by Claude Code, not in the project file.
+- **Plugin setting:** none. The plugin starts `multi-account-netlify-mcp serve` from PATH, so the npm package must be installed globally.
 - **Restart:** Claude Code loads the plugin when it starts.
 - **Lists:** `claude plugin list --json` is the record for this agent. `uninstall` and `update` find each install there, and run in that install's folder.
 - **Marketplace after uninstall:** kept, because other folders may use it. Remove it with `claude plugin marketplace remove multi-account-netlify-mcp`.

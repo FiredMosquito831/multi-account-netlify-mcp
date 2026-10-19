@@ -37,14 +37,13 @@ describe('plugin manifests', () => {
     assert.equal(marketplace.metadata.version, pkg.version);
   });
 
-  it('the MCP launcher reads cli_path, and the plugin declares it as a required setting', async () => {
+  it('the MCP launcher starts the npm-installed command from PATH, and the plugin needs no settings', async () => {
     const manifest = await readJson(`plugins/${PLUGIN_NAME}/.claude-plugin/plugin.json`);
     const mcp = await readJson(`plugins/${PLUGIN_NAME}/.mcp.json`);
     const server = mcp.mcpServers.netlify;
-    assert.equal(server.command, 'node');
-    assert.ok(server.args.includes('${user_config.cli_path}'));
-    assert.ok(server.args.includes('serve'));
-    assert.equal(manifest.userConfig.cli_path.required, true);
+    assert.equal(server.command, 'multi-account-netlify-mcp');
+    assert.deepEqual(server.args, ['serve']);
+    assert.equal(manifest.userConfig, undefined);
   });
 
   it('the launcher points at the built CLI that the package bin exposes', async () => {

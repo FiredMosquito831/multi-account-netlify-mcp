@@ -2,7 +2,7 @@
   "name": "multi-account-netlify",
   "displayName": "Multi-account Netlify",
   "version": "0.1.3",
-  "description": "Netlify MCP tools for several accounts: sites, deploys, teams, projects, extensions and observability, sent to one account, a list, or all of them.",
+  "description": "Netlify MCP tools for several accounts: sites, deploys, teams, projects, extensions and observability, sent to one account, a list, or all of them. Needs multi-account-netlify-mcp installed with npm (npm install -g multi-account-netlify-mcp).",
   "author": {
     "name": "FiredMosquito831"
   },
@@ -13,13 +13,5 @@
     "mcp",
     "multi-account",
     "deploy"
-  ],
-  "userConfig": {
-    "cli_path": {
-      "type": "string",
-      "title": "Path to multi-account-netlify-mcp (set by the installer)",
-      "description": "Absolute path to dist/cli.js of the installed multi-account-netlify-mcp package. Running `multi-account-netlify-mcp install` fills this in.",
-      "required": true
-    }
-  }
+  ]
 }

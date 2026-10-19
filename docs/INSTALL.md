@@ -37,20 +37,14 @@ Restart each agent you installed into. The server is read when an agent starts, 
 
 ## Install through Claude Code's plugin manager
 
-If you prefer Claude Code's own plugin commands, install the npm package first, because the plugin runs the installed CLI. Then find the path of the installed CLI:
-
-```sh
-npm root -g
-```
-
-In Claude Code:
+Claude Code can also add the plugin from its marketplace, the same way as ase-moodle-mcp and google-services-mcps. The plugin starts `multi-account-netlify-mcp` from your PATH, so install the npm package first (see above). Then, in Claude Code:
 
 ```text
 /plugin marketplace add FiredMosquito831/multi-account-netlify-mcp
 /plugin install multi-account-netlify@multi-account-netlify-mcp
 ```
 
-When Claude Code asks for `cli_path`, give the path `npm root -g` printed, followed by `multi-account-netlify-mcp/dist/cli.js`. Running `multi-account-netlify-mcp install --scope <scope>` does the same thing and fills `cli_path` in for you, so most people do not need this route.
+The plugin asks for no settings. Restart Claude Code, then run `/mcp`: the `netlify` server should be connected. For project or local scope, use `multi-account-netlify-mcp install --scope <scope>`, which records the scope for you.
 
 ## Install from a clone (development)
 

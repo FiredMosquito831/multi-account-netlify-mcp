@@ -28,14 +28,12 @@ Env var values, form submissions, and request logs can be read across all accoun
 
 ## Adding and removing accounts
 
-The user runs these in a terminal. You cannot complete them for the user:
+- **Adding in the chat.** When the user asks to add an account, agree its name with them, then call `account_add` with that name. A browser window opens with a new profile, and the user signs in there with the account to add. The call waits for the sign-in, for up to six minutes, then reports the result. Tell the user to finish the sign-in in that window.
+- **Listing.** `account_list` shows the accounts, their emails and the default. It never shows a token.
+- **Adding with a token, removing, and choosing the default** happen in a terminal: `multi-account-netlify-mcp add <name> --pat` (the input is hidden), `list`, `default <name>`, `remove <name>`, and `doctor`. In Claude Code the same actions are `/multi-account-netlify:add-account`, `/multi-account-netlify:accounts`, `/multi-account-netlify:set-default`, `/multi-account-netlify:remove-account`, and `/multi-account-netlify:doctor`.
 
-- `multi-account-netlify-mcp add <name>` opens a browser login for a new account. Add `--pat` to paste a personal access token instead. The input is hidden.
-- `multi-account-netlify-mcp list`, `default <name>`, `remove <name>`, and `doctor` show or change the accounts.
-- In Claude Code the same actions are available as `/multi-account-netlify:add-account`, `/multi-account-netlify:accounts`, `/multi-account-netlify:set-default`, `/multi-account-netlify:remove-account`, and `/multi-account-netlify:doctor`.
-
-Never ask the user to paste a token into the chat. Tell them the terminal command instead.
+Never ask the user to paste a token into the chat. Tell them the terminal command for a token instead.
 
 ## After account changes
 
-The account list and the default account are read on each call. A token that was added again is picked up after the agent restarts, because the running server keeps the token it started with.
+A new account appears in the account argument after the agent restarts. The account list and the default account are read on each call. A token that was added again is picked up after the agent restarts, because the running server keeps the token it started with.

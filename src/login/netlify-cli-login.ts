@@ -63,32 +63,115 @@ export const netlifyCliEntry = (): string => {
   return path.join(path.dirname(packageJsonPath), pkg.bin.netlify);
 };
 
-const runNetlifyLogin = (profileDir: string): Promise<void> =>
+// The most the server keeps of a captured run. A login prints a few lines, so this is never reached in practice.
+const MAX_CAPTURED_OUTPUT = 16_384;
+
+// The in-chat login waits this long for the browser sign-in, the same limit the official server uses.
+export const IN_CHAT_LOGIN_TIMEOUT_MS = 6 * 60_000;
+
+interface LoginRun {
+  code: number | null;
+  output: string;
+  timedOut: boolean;
+}
+
+// Runs `netlify login` and waits until it has exited. A captured run keeps its output and never writes to
+// this process's stdout, which is the MCP channel while the server runs. On a timeout the CLI is stopped,
+// and the wait goes on until it has actually exited, so its files are not touched while it still holds them.
+const runNetlifyLogin = (env: NodeJS.ProcessEnv, options: { capture: boolean; timeoutMs?: number }): Promise<LoginRun> =>
   new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [netlifyCliEntry(), 'login'], {
-      env: isolatedEnv(profileDir),
-      stdio: 'inherit',
+      env,
+      stdio: options.capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
     });
-    child.on('error', reject);
-    child.on('exit', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`netlify login exited with code ${code}.`));
+    let output = '';
+    const keep = (chunk: Buffer) => {
+      if (output.length < MAX_CAPTURED_OUTPUT) {
+        output += chunk.toString('utf8');
       }
+    };
+    child.stdout?.on('data', keep);
+    child.stderr?.on('data', keep);
+
+    let timedOut = false;
+    const timer =
+      options.timeoutMs === undefined
+        ? undefined
+        : setTimeout(() => {
+            timedOut = true;
+            child.kill();
+          }, options.timeoutMs);
+    child.on('error', (error) => {
+      clearTimeout(timer);
+      reject(error);
+    });
+    child.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ code, output, timedOut });
     });
   });
 
-// Runs `netlify login` in a throwaway profile and returns the token. The profile is deleted
-// afterwards, so the token only lives in memory and in the credential store.
+// One line that says why the CLI failed, without any link. A login link is a sign-in ticket, so it is never shown.
+export const describeCliFailure = (output: string, code: number | null): string => {
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.replace(/https?:\/\/\S+/g, '<link>').trim())
+    .filter((line) => line.length > 0);
+  const last = lines.at(-1);
+  return last ? `netlify login exited with code ${code}: ${last}` : `netlify login exited with code ${code}.`;
+};
+
+// Removes the login profile. The file that holds the token goes first, so a browser that still has the folder
+// open cannot leave the token on disk (Windows keeps those files locked). A failed clean-up is not an error:
+// the login has already succeeded or failed.
+const forgetProfile = async (profileDir: string): Promise<void> => {
+  for (const file of cliConfigCandidates(profileDir)) {
+    await rm(file, { force: true }).catch(() => undefined);
+  }
+  await rm(profileDir, { recursive: true, force: true }).catch(() => undefined);
+};
+
+const startFresh = async (profileDir: string): Promise<void> => {
+  await forgetProfile(profileDir);
+  await mkdir(profileDir, { recursive: true });
+};
+
+// Runs `netlify login` in a throwaway profile, in this terminal, and returns the token. The profile is
+// deleted afterwards, so the token only lives in memory and in the credential store.
 export const loginWithNetlifyCli = async (name: string): Promise<CliLogin> => {
   const profileDir = loginProfileDir(name);
-  await rm(profileDir, { recursive: true, force: true });
-  await mkdir(profileDir, { recursive: true });
+  await startFresh(profileDir);
   try {
-    await runNetlifyLogin(profileDir);
+    const run = await runNetlifyLogin(isolatedEnv(profileDir), { capture: false });
+    if (run.code !== 0) {
+      throw new Error(describeCliFailure(run.output, run.code));
+    }
     return await readCliLogin(profileDir);
   } finally {
-    await rm(profileDir, { recursive: true, force: true });
+    await forgetProfile(profileDir);
+  }
+};
+
+// The browser login behind the account_add tool. It is the same `netlify login`, with the login source set to
+// mcp, as the official server uses. The call waits for the sign-in, for up to six minutes.
+export const loginInChat = async (name: string): Promise<CliLogin> => {
+  const profileDir = loginProfileDir(name);
+  await startFresh(profileDir);
+  try {
+    const env = { ...isolatedEnv(profileDir), NETLIFY_LOGIN_SOURCE: 'mcp' };
+    const run = await runNetlifyLogin(env, { capture: true, timeoutMs: IN_CHAT_LOGIN_TIMEOUT_MS });
+    if (run.timedOut) {
+      throw new Error(
+        'The Netlify login was not finished within six minutes. Try again, or run `multi-account-netlify-mcp add <name>` in a terminal.',
+      );
+    }
+    if (run.code !== 0) {
+      throw new Error(
+        `${describeCliFailure(run.output, run.code)} Try again, or run \`multi-account-netlify-mcp add <name>\` in a terminal.`,
+      );
+    }
+    return await readCliLogin(profileDir);
+  } finally {
+    await forgetProfile(profileDir);
   }
 };

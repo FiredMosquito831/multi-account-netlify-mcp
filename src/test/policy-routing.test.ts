@@ -44,7 +44,7 @@ const session = async (tokens: Record<string, string>, registry: Registry) => {
     }) as unknown as OfficialChild;
   const tokenStore: TokenStore = { get: (name) => tokens[name] ?? null, set() {}, delete: () => true };
   const multiplexer = new Multiplexer(tokenStore, start);
-  const server = createMuxServer({ multiplexer, loadRegistry: async () => registry });
+  const server = createMuxServer({ multiplexer, loadRegistry: async () => registry, addAccount: async (name) => `added ${name}` });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   const client = new Client({ name: 'routing-test', version: '0.0.0' }, { capabilities: {} });

@@ -28,11 +28,15 @@ The tests use Node's built-in test runner (`node:test`). They need no network ac
 | `coverage.test.ts` | runs against the installed official package: the policy table must list exactly the operations the official server has |
 | `catalog.test.ts` | the `account` argument is added, the coding-rules tool is left alone, and the original tool is not changed |
 | `skills-and-definitions.test.ts` | the skill ships and is agent-neutral; Codex and Antigravity skills install and uninstall; the tool descriptions carry the per-operation rules |
-| `server.test.ts` | the server end to end, in memory: passing a single result through, fan-out, errors, unknown tools, and the neutral child |
+| `server.test.ts` | the server end to end, in memory: passing a single result through, fan-out, errors, unknown tools, the neutral child, and the account tools (they never reach a child) |
 | `policy-routing.test.ts` | per operation: changes refused on lists, reads fanned out, `locate` dropping accounts that do not own the id, and auth failures kept visible |
 | `multiplexer.test.ts` | one child per account, reuse, restart after exit, and close |
 | `fanout.test.ts` | the concurrency limit and the order of results |
 | `login.test.ts` | reading the token the Netlify CLI writes, the isolated environment, and the child environment |
+| `in-chat-login.test.ts` | the six-minute limit of the in-chat login, and the failure message, which never shows a login link |
+| `add-account.test.ts` | adding an account from the chat: the name checks, a login already running, a failed login, a rejected token, the same user under a second name, the default, and that the token never reaches the accounts file |
+| `account-tools.test.ts` | the two account tools and their schemas, and the account list text (no token, the default marked) |
+| `usage.test.ts` | the help text, the server start command, and what runs when no command is given |
 | `install.test.ts` | the Claude Code plugin driver, with a fake `claude` that records the calls: marketplace, install, update, uninstall, scopes |
 | `agents.test.ts` | argument and answer parsing, the guided questions, the Codex TOML table, the opencode JSON edits (backups, invalid files, cleanup), Antigravity commands, and the dispatcher's skip and error rules |
 | `manifests.test.ts` | the marketplace, plugin, launcher, commands, skill and `package.json` agree with each other |

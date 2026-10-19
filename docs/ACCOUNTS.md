@@ -4,9 +4,11 @@ An account is one Netlify login, given a short name such as `work` or `personal`
 
 ## Adding an account
 
-There are two ways.
+There are three ways. Each one checks the token with Netlify before anything is stored.
 
-**With a browser login** (the default):
+**In a chat**: ask the agent to add the account and agree its name. The agent uses the `account_add` tool. A browser window opens with a new profile, so sign in there with the account you mean. The call waits for the sign-in, for up to six minutes, and then reports the result. See [MCP.md](MCP.md#adding-accounts-from-the-chat).
+
+**With a browser login in a terminal** (the default for `add`):
 
 ```sh
 multi-account-netlify-mcp add work
@@ -22,7 +24,7 @@ multi-account-netlify-mcp add work --pat
 
 The command asks for the token. The input is hidden while you type it. Create a token in Netlify under your user settings, under OAuth, as personal access tokens.
 
-Either way, the token is checked before it is stored. The check calls `GET /api/v1/user`. If Netlify refuses the token, nothing is stored, and the command reports the HTTP status.
+Every way checks the token before it is stored. The check calls `GET /api/v1/user`. If Netlify refuses the token, nothing is stored, and the command reports the HTTP status.
 
 ## What gets stored
 
@@ -93,12 +95,12 @@ Restart the agents afterwards. A running server keeps the token it started with,
 
 ## Isolation during login
 
-`add` (without `--pat`) runs `netlify login` with these environment variables pointed at a throwaway folder under the data folder:
+`add` (without `--pat`) and the in-chat login run `netlify login` with these environment variables pointed at a throwaway folder under the data folder:
 
 - `APPDATA`, `LOCALAPPDATA` and `XDG_CONFIG_HOME`, where the Netlify CLI keeps its config;
 - `HOME` and `USERPROFILE`, so the CLI cannot read or merge `~/.netlify/config.json`.
 
-It also removes `NETLIFY_AUTH_TOKEN` and `NETLIFY_PERSONAL_ACCESS_TOKEN` from the environment it passes on, so an existing token cannot short-circuit the login. The folder is deleted when the login finishes, whether it succeeded or not.
+It also removes `NETLIFY_AUTH_TOKEN` and `NETLIFY_PERSONAL_ACCESS_TOKEN` from the environment it passes on, so an existing token cannot short-circuit the login. The token file is deleted first, then the folder, whether the login succeeded or not. The browser that opens also uses a new profile, not the one you use every day, so sign in with the account you mean. On Windows, a browser that still has the folder open keeps some of its files, so the folder can stay until that browser closes. The token file is removed before that, so no token is left behind.
 
 ## Accounts and agents
 

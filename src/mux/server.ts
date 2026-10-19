@@ -2,6 +2,7 @@ import { Server } from '@modelcontextprotocol/server';
 import type { CallToolResult } from '@modelcontextprotocol/server';
 import type { Registry } from '../accounts/registry.js';
 import { VERSION } from '../version.js';
+import { ACCOUNT_ADD_TOOL, ACCOUNT_LIST_TOOL, ACCOUNT_TOOLS, accountLines } from './account-tools.js';
 import { NO_ACCOUNT_TOOLS, withAccountParam } from './catalog.js';
 import { mapWithLimit } from './fanout.js';
 import type { Multiplexer } from './multiplexer.js';
@@ -14,6 +15,8 @@ export const FANOUT_LIMIT = 4;
 export interface MuxDeps {
   multiplexer: Multiplexer;
   loadRegistry: () => Promise<Registry>;
+  // Runs the browser login for a new account (the account_add tool) and returns the text to show.
+  addAccount: (name: string) => Promise<string>;
 }
 
 // ok: the account answered. miss: the account does not own the id (locate mode only). fail: it errored.
@@ -36,6 +39,8 @@ const errorResult = (text: string): CallToolResult => ({
   content: [{ type: 'text', text }],
 });
 
+const textResult = (text: string): CallToolResult => ({ content: [{ type: 'text', text }] });
+
 // A short plain-text answer such as "This site id ... do not exist." is a miss too. Longer text is
 // data, so it is never read as a miss.
 const resultOutcome = (account: string, result: CallToolResult, mode: Mode): AccountOutcome => {
@@ -50,18 +55,33 @@ const errorOutcome = (account: string, error: string, mode: Mode): AccountOutcom
   mode === 'locate' && looksNotFound(error) ? { account, kind: 'miss', error } : { account, kind: 'fail', error };
 
 // The MCP server that Claude Code talks to. It exposes the official tools with an `account` argument added.
-export const createMuxServer = ({ multiplexer, loadRegistry }: MuxDeps): Server => {
+export const createMuxServer = ({ multiplexer, loadRegistry, addAccount }: MuxDeps): Server => {
   const server = new Server({ name: 'multi-account-netlify-mcp', version: VERSION }, { capabilities: { tools: {} } });
 
   server.setRequestHandler('tools/list', async () => {
     const [tools, registry] = await Promise.all([multiplexer.tools(), loadRegistry()]);
     const names = registry.accounts.map((account) => account.name);
-    return { tools: tools.map((tool) => withAccountParam(tool, names)) };
+    return { tools: [...tools.map((tool) => withAccountParam(tool, names)), ...ACCOUNT_TOOLS] };
   });
 
   server.setRequestHandler('tools/call', async (request) => {
     const name = request.params.name;
     const args: Record<string, unknown> = { ...(request.params.arguments ?? {}) };
+
+    // The account tools run here, never on a Netlify child.
+    if (name === ACCOUNT_ADD_TOOL) {
+      if (typeof args.name !== 'string' || args.name === '') {
+        return errorResult('Pass the name of the account to add, for example { "name": "work" }.');
+      }
+      try {
+        return textResult(await addAccount(args.name));
+      } catch (error) {
+        return errorResult(messageOf(error));
+      }
+    }
+    if (name === ACCOUNT_LIST_TOOL) {
+      return textResult(accountLines(await loadRegistry()).join('\n'));
+    }
 
     const tools = await multiplexer.tools();
     if (!tools.some((tool) => tool.name === name)) {

@@ -5,15 +5,9 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { Writable } from 'node:stream';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
-import {
-  addAccount as addAccountRecord,
-  assertValidName,
-  findAccount,
-  loadRegistry,
-  removeAccount,
-  saveRegistry,
-  setDefaultAccount,
-} from './accounts/registry.js';
+import { accountLines } from './mux/account-tools.js';
+import { addAccountInChat, storeNewAccount } from './accounts/add-account.js';
+import { assertValidName, findAccount, loadRegistry, removeAccount, saveRegistry, setDefaultAccount } from './accounts/registry.js';
 import { parseScope } from './install/claude-plugin.js';
 import { isPresent, runCommand } from './agents/command.js';
 import { ADAPTERS, runAction, type Action } from './agents/dispatch.js';
@@ -21,33 +15,12 @@ import { commandLine, completeAnswers, formatSteps, parseInstallArgs, type Answe
 import { AGENTS, type AgentScope, type Context, type Step } from './agents/types.js';
 import { osTokenStore } from './secrets/token-store.js';
 import { fetchNetlifyUser } from './netlify/api.js';
-import { loginWithNetlifyCli, netlifyCliEntry } from './login/netlify-cli-login.js';
+import { loginInChat, loginWithNetlifyCli, netlifyCliEntry } from './login/netlify-cli-login.js';
 import { Multiplexer } from './mux/multiplexer.js';
 import { createMuxServer } from './mux/server.js';
 import { officialEntry } from './mux/official-child.js';
 import { accountsFile, dataDir, packageRoot } from './paths.js';
-
-const USAGE = `multi-account-netlify-mcp <command>
-
-Commands:
-  add <name> [--pat]   Add a Netlify account. Runs \`netlify login\` in a separate profile,
-                       or asks for a personal access token with --pat.
-  list                 Show the accounts. Tokens are never printed.
-  default <name>       Set the account used when a tool call names none.
-  remove <name>        Remove an account and its stored token.
-  doctor               Check the data folder, the official server, the agents and each account's token.
-  install [agent ...] [--scope global|project|local] [--project-dir DIR] [--source SRC] [--dry-run] [--yes]
-                       Install into the agents you name: claude, codex, opencode, antigravity, or all.
-                       With no agent named, every agent set up here. In a terminal, missing answers are asked
-                       for, and the exact command is shown before anything is written.
-                       global (default) is for every folder. project is shared through git. local is this folder only.
-  update [agent ...] [--scope global|project|local|all] [--project-dir DIR]
-                       Refresh the installs that exist (default: all scopes). Run
-                       \`npm install -g multi-account-netlify-mcp@latest\` first to update the code.
-  uninstall [agent ...] [--scope global|project|local|all] [--project-dir DIR]
-                       Remove this server from the agents (default: all scopes). Accounts and tokens are kept.
-  serve                Run the MCP server over stdio. This is the default with no command.
-`;
+import { USAGE, commandWhenNone } from './usage.js';
 
 const messageOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
 
@@ -75,8 +48,7 @@ const promptHidden = (question: string): Promise<string> =>
 const runAdd = async (name: string, usePat: boolean): Promise<void> => {
   assertValidName(name);
   const file = accountsFile();
-  const registry = await loadRegistry(file);
-  if (findAccount(registry, name)) {
+  if (findAccount(await loadRegistry(file), name)) {
     throw new Error(`An account named "${name}" already exists. Remove it first to replace it.`);
   }
 
@@ -87,40 +59,21 @@ const runAdd = async (name: string, usePat: boolean): Promise<void> => {
     throw new Error('No token was given.');
   }
 
-  // Check the token before anything is stored. The same call tells us whose account it is.
-  const user = await fetchNetlifyUser(token);
-  const updated = addAccountRecord(registry, {
+  // The token is checked before anything is stored. storeNewAccount does the check and the save.
+  const { account, isDefault } = await storeNewAccount(
+    { file, tokens: osTokenStore, fetchUser: fetchNetlifyUser },
     name,
-    email: user.email,
-    userId: user.id,
-    source: usePat ? 'pat' : 'login',
-    addedAt: new Date().toISOString(),
-  });
-
-  osTokenStore.set(name, token);
-  try {
-    await saveRegistry(file, updated);
-  } catch (error) {
-    osTokenStore.delete(name);
-    throw error;
-  }
-
-  const isDefault = updated.default === name ? ' It is the default account.' : '';
-  console.log(`Added "${name}" (${user.email}).${isDefault}`);
+    token,
+    usePat ? 'pat' : 'login',
+  );
+  const defaultNote = isDefault ? ' It is the default account.' : '';
+  console.log(`Added "${name}" (${account.email}).${defaultNote}`);
 };
 
 const runList = async (): Promise<void> => {
   const registry = await loadRegistry(accountsFile());
-  if (registry.accounts.length === 0) {
-    console.log('No accounts yet. Add one with: multi-account-netlify-mcp add <name>');
-    return;
-  }
-  for (const account of registry.accounts) {
-    const marker = account.name === registry.default ? '*' : ' ';
-    console.log(`${marker} ${account.name}\t${account.email}\t${account.source}`);
-  }
-  if (!registry.default) {
-    console.log('No default account. Calls must name one, or use "all".');
+  for (const line of accountLines(registry)) {
+    console.log(line);
   }
 };
 
@@ -280,7 +233,14 @@ const runDoctor = async (): Promise<void> => {
 const runServe = async (): Promise<void> => {
   const multiplexer = new Multiplexer(osTokenStore);
   const loadRegistryFromDisk = () => loadRegistry(accountsFile());
-  serveStdio(() => createMuxServer({ multiplexer, loadRegistry: loadRegistryFromDisk }));
+  // One set per server: a second account_add for a name waits while the first login for it is running.
+  const pending = new Set<string>();
+  const addAccount = (name: string) =>
+    addAccountInChat(
+      { file: accountsFile(), tokens: osTokenStore, fetchUser: fetchNetlifyUser, login: loginInChat, pending },
+      name,
+    );
+  serveStdio(() => createMuxServer({ multiplexer, loadRegistry: loadRegistryFromDisk, addAccount }));
 
   // Routing reads accounts.json on every call. A child that is already running keeps the token it
   // was started with, so a re-added token takes effect after a restart.
@@ -292,9 +252,9 @@ const runServe = async (): Promise<void> => {
 };
 
 const main = async (): Promise<void> => {
-  const [command, ...rest] = process.argv.slice(2);
+  const [given, ...rest] = process.argv.slice(2);
+  const command = given ?? commandWhenNone(Boolean(process.stdin.isTTY));
   switch (command) {
-    case undefined:
     case 'serve':
       return runServe();
     case 'add': {

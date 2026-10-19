@@ -2,7 +2,7 @@
 
 Use several Netlify accounts from your AI coding agent at the same time.
 
-This module runs the official [`@netlify/mcp`](https://www.npmjs.com/package/@netlify/mcp) server once per account and adds an `account` argument to each of its tools. Send a call to one account, to a list of accounts, or to all of them. Each account is added with its own Netlify login, and its token is stored in the operating system's credential store. The official package is never edited, so `npm update` brings in its changes.
+This module runs the official [`@netlify/mcp`](https://www.npmjs.com/package/@netlify/mcp) server once per account and adds an `account` argument to each of its tools. Send a call to one account, to a list of accounts, or to all of them. Each account is added with its own Netlify login, from a terminal or from the chat, and its token is stored in the operating system's credential store. The official package is never edited, so `npm update` brings in its changes.
 
 It installs into four agents: **Claude Code**, **Codex**, **opencode** and **Google Antigravity** (`agy`).
 
@@ -19,7 +19,7 @@ multi-account-netlify-mcp default work
 multi-account-netlify-mcp doctor
 ```
 
-`install` in a terminal asks which agents and which scope you want, then shows the exact command before it runs. `add work` opens a browser for the Netlify login: sign in with the account you want to call `work`. Restart the agents you installed into, and ask one of them about your Netlify sites.
+`install` in a terminal asks which agents and which scope you want, then shows the exact command before it runs. `add work` opens a browser for the Netlify login: sign in with the account you want to call `work`. In a chat, ask the agent to add an account instead: it uses the `account_add` tool, which opens the same sign-in. Restart the agents you installed into, and ask one of them about your Netlify sites.
 
 No browser on this machine? `add work --pat` asks for a Netlify personal access token instead. The input is hidden.
 
@@ -96,12 +96,12 @@ Plugin commands in Claude Code:
 | Command | What it does |
 |---|---|
 | `/multi-account-netlify:accounts` | list the accounts (tokens are never shown) |
-| `/multi-account-netlify:add-account <name> [--pat]` | add an account. The login runs in your terminal, so type the command it gives you. |
+| `/multi-account-netlify:add-account <name> [--pat]` | add an account. A browser login is done by the agent with the `account_add` tool. With `--pat`, type the command it gives you in your terminal, so the token stays out of the chat. |
 | `/multi-account-netlify:set-default <name>` | choose the default account |
 | `/multi-account-netlify:remove-account <name>` | remove an account and its stored token, after you confirm |
 | `/multi-account-netlify:doctor` | check the data folder, the official server, the agents and each token |
 
-The same account commands work in a terminal, for example `multi-account-netlify-mcp list`.
+The same account commands work in a terminal, for example `multi-account-netlify-mcp list`. The agent also has two account tools: `account_add` (a browser login) and `account_list`.
 
 ## Update
 

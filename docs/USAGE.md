@@ -16,7 +16,7 @@ multi-account-netlify-mcp <command>
 | [`update [agent ...]`](#update) | refresh existing installs |
 | [`uninstall [agent ...]`](#uninstall) | remove installs |
 | [`doctor`](#doctor) | check everything |
-| [`serve`](#serve) | run the MCP server over stdio (the default with no command) |
+| [`serve`](#serve) | run the MCP server over stdio (agents start it; with no command, a terminal shows the help) |
 | `help`, `--help`, `-h` | print the short usage |
 
 ## add
@@ -32,6 +32,8 @@ Adds a Netlify account.
 - The token is checked against Netlify (`GET /api/v1/user`) before anything is stored. The check also tells us whose account it is.
 - The token goes into the credential store. The account record (name, email, user id, how it was added, date) goes into `accounts.json`.
 - The first account added becomes the default.
+
+In a chat, an agent can add an account with the `account_add` tool. It runs the same browser login. See [MCP.md](MCP.md#adding-accounts-from-the-chat).
 
 Name rules: 1 to 32 lowercase letters, digits or hyphens, starting with a letter or digit. `all` is reserved. An account name that is already used is refused, and so is a Netlify login that is already added under another name.
 
@@ -141,7 +143,7 @@ Prints:
 multi-account-netlify-mcp serve
 ```
 
-Runs the MCP server over stdio. Agents run this command for you, so you should not need it by hand. With no command at all, the CLI runs `serve`. Nothing but the MCP protocol is written to standard output in this mode. Errors go to standard error.
+Runs the MCP server over stdio. The server start command is `multi-account-netlify-mcp serve`. Agents run it for you, so you should not need it by hand. With no command, a terminal shows the help instead. Anything that starts the program without a terminal, such as an agent, gets the server. Nothing but the MCP protocol is written to standard output in this mode. Errors go to standard error.
 
 ## Output and exit codes
 

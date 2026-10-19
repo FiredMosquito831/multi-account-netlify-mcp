@@ -2,6 +2,13 @@
 
 All notable changes to this project. Dates are when the change landed.
 
+## Unreleased
+
+- **Accounts from the chat.** `account_add` adds an account with the same browser login as `add <name>`. The agent calls it when you ask, with a name you agree. `account_list` shows the accounts, without tokens. The official server runs the same kind of login when a call finds no token.
+- **Help on a bare run.** With no command, a terminal shows the help, which gives the server start command (`multi-account-netlify-mcp serve`). An agent still gets the server.
+- **Clean-up after a login.** The token file is deleted first, and the clean-up no longer fails a login when the browser still holds the profile folder open.
+- **Release checks.** `docs/RELEASING.md` has a check for secrets and personal data before a push or a publish. The workflows pin their actions to commit SHAs.
+
 ## 0.1.3
 
 Four agents, skills, and clearer tool definitions.

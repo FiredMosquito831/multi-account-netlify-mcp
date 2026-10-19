@@ -50,10 +50,14 @@ const tokensFor = (entries: Record<string, string>): TokenStore => ({
   delete: () => true,
 });
 
-const connect = async (registry: Registry, tokens: Record<string, string>) => {
+const connect = async (
+  registry: Registry,
+  tokens: Record<string, string>,
+  addAccount: (name: string) => Promise<string> = async (name) => `added ${name}`,
+) => {
   const calls: { child: string; tool: string; args: Record<string, unknown> }[] = [];
   const multiplexer = new Multiplexer(tokensFor(tokens), scriptedStarter(calls));
-  const server = createMuxServer({ multiplexer, loadRegistry: async () => registry });
+  const server = createMuxServer({ multiplexer, loadRegistry: async () => registry, addAccount });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await server.connect(serverTransport);
   const client = new Client({ name: 'test-client', version: '0.0.0' }, { capabilities: {} });
@@ -69,6 +73,80 @@ const connect = async (registry: Registry, tokens: Record<string, string>) => {
 };
 
 const textOf = (result: CallToolResult): string => (result.content[0] as { text: string }).text;
+
+describe('account tools on the server', () => {
+  it('lists account_add and account_list beside the official tools', async () => {
+    const session = await connect(registryOf('work'), { work: 'nfp_ok' });
+    try {
+      const { tools } = await session.client.listTools();
+      const names = tools.map((tool) => tool.name);
+      assert.ok(names.includes('account_add'));
+      assert.ok(names.includes('account_list'));
+      assert.ok(names.includes('netlify-project-services-reader'));
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('runs account_add through the login and never calls a Netlify child', async () => {
+    const added: string[] = [];
+    const session = await connect(registryOf('work'), { work: 'nfp_ok' }, async (name) => {
+      added.push(name);
+      return `Added "${name}" (personal@example.com).`;
+    });
+    try {
+      const result = (await session.client.callTool({ name: 'account_add', arguments: { name: 'personal' } })) as CallToolResult;
+      assert.notEqual(result.isError, true);
+      assert.equal(textOf(result), 'Added "personal" (personal@example.com).');
+      assert.deepEqual(added, ['personal']);
+      assert.deepEqual(session.calls, []);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('answers account_add without a name with an error, and starts no login', async () => {
+    const added: string[] = [];
+    const session = await connect(registryOf('work'), {}, async (name) => {
+      added.push(name);
+      return 'unused';
+    });
+    try {
+      const result = (await session.client.callTool({ name: 'account_add', arguments: {} })) as CallToolResult;
+      assert.equal(result.isError, true);
+      assert.deepEqual(added, []);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('reports a failed login as an error result, not as a crash', async () => {
+    const session = await connect(registryOf('work'), {}, async () => {
+      throw new Error('netlify login exited with code 1: Error: the sign-in was denied');
+    });
+    try {
+      const result = (await session.client.callTool({ name: 'account_add', arguments: { name: 'personal' } })) as CallToolResult;
+      assert.equal(result.isError, true);
+      assert.match(textOf(result), /the sign-in was denied/);
+    } finally {
+      await session.close();
+    }
+  });
+
+  it('lists the accounts with account_list, and shows no token', async () => {
+    const session = await connect(registryOf('work', 'personal'), { work: 'nfp_secret_work' });
+    try {
+      const result = (await session.client.callTool({ name: 'account_list', arguments: {} })) as CallToolResult;
+      const text = textOf(result);
+      assert.match(text, /work/);
+      assert.match(text, /personal/);
+      assert.doesNotMatch(text, /nfp_secret_work/);
+      assert.deepEqual(session.calls, []);
+    } finally {
+      await session.close();
+    }
+  });
+});
 
 describe('mux server', () => {
   it('lists the official tools with an account argument, except the coding-rules tool', async () => {

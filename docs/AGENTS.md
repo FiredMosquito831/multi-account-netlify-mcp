@@ -69,7 +69,7 @@ The skill is one file, `plugins/multi-account-netlify/skills/netlify-accounts/SK
 - how to choose an account, and what a list, `all` or a missing account means;
 - that changes need one account, and to confirm the account and the effect before running one;
 - how to handle secrets and personal data that a read can return;
-- that the user adds accounts and tokens in a terminal, and that a token is never pasted into the chat.
+- that an account can be added in the chat with `account_add`, after the user asks and with a name agreed, that a token is added in a terminal, and that a token is never pasted into the chat.
 
 The tool descriptions carry the rules for each operation too, so an agent without the skill still sees them in its tool list. See [MCP.md](MCP.md#how-the-tools-describe-themselves).
 

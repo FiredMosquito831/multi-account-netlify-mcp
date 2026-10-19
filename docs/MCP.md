@@ -4,7 +4,7 @@ This page describes what an agent sees when it connects to the server: the tools
 
 ## The tools
 
-The server exposes the same tools as the official `@netlify/mcp` server in local mode. There are ten:
+The server exposes the same tools as the official `@netlify/mcp` server in local mode. There are ten official tools:
 
 | Tool | Read or change | Operations |
 |---|---|---|
@@ -22,6 +22,13 @@ The server exposes the same tools as the official `@netlify/mcp` server in local
 Each tool takes an `operation` and its `params`, as the official server defines them. This server does not change them. The only addition is the `account` argument.
 
 Tool names are the official names, with no account in them. Adding an account does not add tools.
+
+Two more tools manage the accounts. They are not official tools, and they never reach a Netlify child:
+
+| Tool | What it does |
+|---|---|
+| `account_add` | adds an account by browser login, in the chat. See [Adding accounts from the chat](#adding-accounts-from-the-chat). |
+| `account_list` | lists the accounts, with their emails and the default. Tokens are never shown. |
 
 ## The `account` argument
 
@@ -134,9 +141,24 @@ Multi-account (the account argument): get-project: only the account that owns th
 
 The `account` argument's description says that lists and `all` only work for operations that allow them, that changes need one name, and which accounts exist. An agent that never reads a skill still sees these rules, because they are in the tool list.
 
+## Adding accounts from the chat
+
+The `account_add` tool adds an account with the same browser login as `multi-account-netlify-mcp add <name>`. The agent calls it when the user asks, with a name the user has agreed:
+
+1. The server checks the name, and that no login for that name is already running.
+2. The Netlify CLI runs `netlify login` in a throwaway profile, with the login source set to `mcp`, as the official server does. A browser window opens.
+3. The user signs in there with the account to add. The browser uses a new profile, so it does not use the sign-in of the user's own browser.
+4. The call returns when the sign-in finishes, or after six minutes. The token is checked with Netlify, stored in the credential store, and the account is saved.
+
+The call answers with the account it added, or with the reason it failed. A login link is never shown in the chat, because it is a sign-in ticket. If the browser does not open, run `multi-account-netlify-mcp add <name>` in a terminal, which shows the link.
+
+A token is never typed into the chat. For a personal access token, the user runs `multi-account-netlify-mcp add <name> --pat` in a terminal.
+
+The new name shows in the `account` argument after the agent restarts. `account_list` shows the accounts at any time.
+
 ## What the server does not expose
 
-Compared with the official server in local mode, this server keeps everything: all ten tools, every operation and every parameter, and the result contents. What it does not expose:
+Compared with the official server in local mode, this server keeps everything: all ten tools, every operation and every parameter, and the result contents. It adds the two account tools. What it does not expose:
 
 - **`--verbose` mode** of the official server, which registers one tool per operation. This server relies on the grouped form, where an operation is chosen with `selectSchema`. The policy needs that form to decide each call.
 - **`--proxy-path`**, the official package's command-line deploy mode. It is a command-line tool, not an MCP tool.
@@ -148,7 +170,8 @@ Compared with the official server in local mode, this server keeps everything: a
 | | Official `@netlify/mcp` | multi-account-netlify-mcp |
 |---|---|---|
 | Accounts | one per process, from `NETLIFY_PERSONAL_ACCESS_TOKEN` or the Netlify CLI login | any number, each with its own login or token |
-| Tools | ten, one account | the same ten, with the `account` argument |
+| Tools | ten, one account | the same ten, with the `account` argument, plus `account_add` and `account_list` |
+| Adding an account in the chat | the official server runs `netlify login` when a call finds no token | `account_add` runs the same login, and the account is stored with its name |
 | Result | the official result | the official result, or one entry per account |
 | Changes on several accounts | not applicable | refused |
 | Install | by hand, in each client's config | `install` for four agents, with scopes, a plan and a clean uninstall |

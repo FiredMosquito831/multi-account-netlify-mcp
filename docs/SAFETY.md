@@ -43,11 +43,19 @@ This tool does not ask you to confirm each call. The MCP protocol does not give 
 - The tool descriptions say which operations change data, and the account guide tells agents to confirm the account and the effect first.
 - Agents ask for permission to run tools according to their own settings. In Claude Code, check the permission rules for the `netlify` tools in your settings if you want a prompt before each change.
 
+## Adding accounts from the chat
+
+- The agent adds an account only when you ask for one, and only with a name you agreed.
+- The sign-in is yours. You sign in in the browser window that opens. The agent never sees your password.
+- The token is checked with Netlify before anything is stored. A rejected token stores nothing.
+- A token is never typed or pasted into the chat. For a token, run `add <name> --pat` in a terminal.
+- A login link is a sign-in ticket. The server does not show it in the chat, and it does not write it to a log.
+
 ## Tokens and credentials
 
 - Tokens are stored only in the OS credential store. They are never written to `accounts.json`, to an agent's config, to a log, or to a command's output.
 - Each account's server process gets only its own token, through its environment. The server does not hold a token for another account.
-- The login for `add` runs in a throwaway folder, so your own Netlify CLI login is never read or changed.
+- The logins for `add` and for the in-chat `account_add` run in a throwaway folder, so your own Netlify CLI login is never read or changed.
 - A token that is leaked should be revoked in Netlify's user settings, then replaced with `remove <name>` and `add <name> --pat`.
 
 ## Agent configuration files

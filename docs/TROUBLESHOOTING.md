@@ -33,6 +33,16 @@ Remove the old account first, or pick another name.
 **`This Netlify login is already added as "work".`**
 The login you signed in with is already an account under another name. Use that name.
 
+### Adding an account from the chat
+
+- **No browser opened.** The Netlify CLI opens the sign-in in a browser. If none opens, for example on a machine without a screen, the call fails. Run `multi-account-netlify-mcp add <name>` in a terminal instead, which shows the link.
+- **The call waited for six minutes.** The sign-in was not finished in time, or its window was closed. Nothing was stored. Try again.
+- **"A login for that name is already running".** A login for that name is still waiting in the browser. Finish or close that window, then try again once the call has returned.
+- **"An account named ... already exists".** Remove the old account first with `remove <name>`, or choose another name.
+- **"Netlify rejected this token".** The sign-in did not give a token that Netlify accepts. Try again, or add the account with `add <name> --pat`, using a token from Netlify's user settings.
+- **The new account does not show.** Restart the agent. The `account` argument lists the account names when the agent starts.
+- **A folder stays in the data folder after a login.** On Windows, a browser that still has the login profile open keeps some of its files. The token file is deleted first, so only browser files can remain. The folder can be deleted once that browser is closed.
+
 ## Calls
 
 **`"deploy-site" runs on one account only, because it can change data or is not classified yet.`**

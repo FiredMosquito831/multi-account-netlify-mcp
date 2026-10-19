@@ -18,15 +18,18 @@ Node 22 or newer. The code is TypeScript, compiled with `tsc` to `dist/`. Import
 ```text
 src/
   cli.ts                       commands: add, list, default, remove, install, update, uninstall, doctor, serve
+  usage.ts                     the help text, and the command that runs when none is given
   paths.ts                     the data folder, and the package root
   version.ts                   the package version, read from package.json
 
   accounts/registry.ts         accounts.json: names, validation, the default, add and remove
+  accounts/add-account.ts      storing a new account (token check, save, rollback), and the in-chat add
   secrets/token-store.ts       the credential store (one entry per account)
   netlify/api.ts               GET /api/v1/user, to check a token
-  login/netlify-cli-login.ts   `netlify login` in a throwaway profile, and reading its token
+  login/netlify-cli-login.ts   `netlify login` in a throwaway profile, in a terminal or for the chat; reading its token
 
-  mux/server.ts                the MCP server: tools/list and tools/call
+  mux/server.ts                the MCP server: tools/list and tools/call, with the two account tools
+  mux/account-tools.ts         account_add and account_list, and the account list text
   mux/policy.ts                the mode of each operation (all, locate, one) and the mixed operations
   mux/routing.ts               the account argument, to a set of accounts
   mux/fanout.ts               the concurrency limit for fan-out

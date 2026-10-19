@@ -1,7 +1,7 @@
 {
   "name": "multi-account-netlify",
   "displayName": "Multi-account Netlify",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Netlify MCP tools for several accounts: sites, deploys, teams, projects, extensions and observability, sent to one account, a list, or all of them.",
   "author": {
     "name": "FiredMosquito831"

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import os from 'node:os';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { Writable } from 'node:stream';
@@ -12,16 +13,11 @@ import {
   saveRegistry,
   setDefaultAccount,
 } from './accounts/registry.js';
-import {
-  GITHUB_SOURCE,
-  PLUGIN_ID,
-  installPlugin,
-  listInstalls,
-  parseScope,
-  sameFolder,
-  uninstallPlugin,
-  updatePlugin,
-} from './install/claude-plugin.js';
+import { parseScope } from './install/claude-plugin.js';
+import { isPresent, runCommand } from './agents/command.js';
+import { ADAPTERS, runAction, type Action } from './agents/dispatch.js';
+import { commandLine, completeAnswers, formatSteps, parseInstallArgs, type Answers } from './agents/install-flow.js';
+import { AGENTS, type AgentScope, type Context, type Step } from './agents/types.js';
 import { osTokenStore } from './secrets/token-store.js';
 import { fetchNetlifyUser } from './netlify/api.js';
 import { loginWithNetlifyCli, netlifyCliEntry } from './login/netlify-cli-login.js';
@@ -38,16 +34,17 @@ Commands:
   list                 Show the accounts. Tokens are never printed.
   default <name>       Set the account used when a tool call names none.
   remove <name>        Remove an account and its stored token.
-  doctor               Check the data folder, the official server, the plugin and each account's token.
-  install [--scope global|project|local] [--project-dir DIR] [--source SRC] [--dry-run]
-                       Install the Claude Code plugin. global (default) is for every folder.
-                       project is shared through the folder's .claude/settings.json.
-                       local is this folder only, not shared.
-  update [--scope global|project|local|all] [--project-dir DIR]
-                       Refresh the plugin in the chosen scope (default all). To update the code too, run
-                       \`npm install -g multi-account-netlify-mcp@latest\` first.
-  uninstall [--scope global|project|local|all] [--project-dir DIR]
-                       Remove the plugin from the chosen scope (default all). Accounts and tokens are kept.
+  doctor               Check the data folder, the official server, the agents and each account's token.
+  install [agent ...] [--scope global|project|local] [--project-dir DIR] [--source SRC] [--dry-run] [--yes]
+                       Install into the agents you name: claude, codex, opencode, antigravity, or all.
+                       With no agent named, every agent set up here. In a terminal, missing answers are asked
+                       for, and the exact command is shown before anything is written.
+                       global (default) is for every folder. project is shared through git. local is this folder only.
+  update [agent ...] [--scope global|project|local|all] [--project-dir DIR]
+                       Refresh the installs that exist (default: all scopes). Run
+                       \`npm install -g multi-account-netlify-mcp@latest\` first to update the code.
+  uninstall [agent ...] [--scope global|project|local|all] [--project-dir DIR]
+                       Remove this server from the agents (default: all scopes). Accounts and tokens are kept.
   serve                Run the MCP server over stdio. This is the default with no command.
 `;
 
@@ -141,31 +138,109 @@ const runRemove = async (name: string): Promise<void> => {
   console.log(`Removed "${name}".`);
 };
 
-const reportPlugin = async (): Promise<void> => {
-  try {
-    const installs = await listInstalls();
-    if (installs.length === 0) {
-      console.log(`Claude plugin ${PLUGIN_ID}: not installed. Run: multi-account-netlify-mcp install`);
-    }
-    for (const install of installs) {
-      if (install.scope === 'global') {
-        console.log(`Claude plugin ${PLUGIN_ID}: global, ${install.enabled ? 'enabled' : 'DISABLED'}`);
-        continue;
-      }
-      // A project or local install is only active when Claude Code runs in its folder.
-      const here = install.projectPath !== undefined && sameFolder(install.projectPath, process.cwd());
-      const state = here ? (install.enabled ? 'enabled here' : 'DISABLED here') : 'active when Claude Code runs in that folder';
-      console.log(`Claude plugin ${PLUGIN_ID}: ${install.scope} at ${install.projectPath}, ${state}`);
-    }
-  } catch (error) {
-    console.log(`Claude plugin check: ${messageOf(error)}`);
+// The running CLI. The agents' server entries launch this same installed copy.
+const cliPath = (): string => fileURLToPath(import.meta.url);
+
+const makeContext = (projectDir: string | undefined, claudeSource: string | undefined): Context => ({
+  home: os.homedir(),
+  projectDir: projectDir ?? process.cwd(),
+  cliPath: cliPath(),
+  packageRoot: packageRoot(),
+  claudeSource,
+  run: runCommand,
+  present: isPresent,
+});
+
+const flagValue = (rest: string[], flag: string): string | undefined => {
+  const index = rest.indexOf(flag);
+  return index >= 0 ? rest[index + 1] : undefined;
+};
+
+const printSteps = (steps: Step[]): void => {
+  for (const line of formatSteps(steps)) {
+    console.log(line);
   }
+};
+
+const exitCodeFor = (steps: Step[]): number => (steps.some((item) => item.status === 'error') ? 1 : 0);
+
+// What would happen, without writing anything. Each agent is listed with the scope it would get.
+const planLines = (agents: string[], scope: AgentScope | 'all', ctx: Context): string[] => {
+  const names = agents.includes('all') ? AGENTS.filter((id) => ADAPTERS[id].present(ctx)) : (agents as typeof AGENTS[number][]);
+  return names.map((id) => {
+    const adapter = ADAPTERS[id];
+    const wanted = scope === 'all' ? [...adapter.scopes] : [scope];
+    const supported = wanted.filter((item) => adapter.scopes.includes(item));
+    const skipped = wanted.filter((item) => !adapter.scopes.includes(item));
+    const parts = [`${id}: ${supported.join(', ') || 'nothing'}`];
+    if (skipped.length > 0) {
+      parts.push(`skipped (${skipped.join(', ')} not supported)`);
+    }
+    return parts.join('; ');
+  });
+};
+
+const runInstall = async (rest: string[]): Promise<void> => {
+  const args = parseInstallArgs(rest);
+  const interactive = Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  const ctx = makeContext(args.projectDir, args.source);
+  const given: Answers = {
+    agents: args.agents.length > 0 ? args.agents : undefined,
+    scope: args.scope === undefined ? undefined : (parseScope(args.scope, 'global') as AgentScope),
+    projectDir: args.projectDir,
+  };
+
+  let answers: { agents: string[]; scope: AgentScope; projectDir?: string } = {
+    agents: given.agents ?? ['all'],
+    scope: given.scope ?? 'global',
+    projectDir: given.projectDir,
+  };
+  if (interactive && (given.agents === undefined || given.scope === undefined)) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const ask = (question: string) => new Promise<string>((resolve) => rl.question(question, resolve));
+    try {
+      answers = await completeAnswers(given, ctx, ask, console.log);
+    } finally {
+      rl.close();
+    }
+  }
+
+  const folderArg = answers.scope !== 'global' ? answers.projectDir : undefined;
+  const ctxForRun = makeContext(answers.projectDir ?? args.projectDir, args.source);
+  console.log(`Plan: ${planLines(answers.agents, answers.scope, ctxForRun).join(' | ')}`);
+  console.log(`Command: ${commandLine({ agents: answers.agents, scope: answers.scope, projectDir: folderArg })}`);
+
+  if (args.dryRun) {
+    console.log('Dry run: nothing was changed.');
+    return;
+  }
+  if (interactive && !args.yes) {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    const answer = await new Promise<string>((resolve) => rl.question('Run it? [y/N] ', resolve));
+    rl.close();
+    if (!/^y(es)?$/i.test(answer.trim())) {
+      console.log('Nothing was changed.');
+      return;
+    }
+  }
+
+  const steps = await runAction('install', { agents: answers.agents, scope: answers.scope }, ctxForRun);
+  printSteps(steps);
+  process.exitCode = exitCodeFor(steps);
+};
+
+const runScoped = async (action: Extract<Action, 'update' | 'uninstall'>, rest: string[]): Promise<void> => {
+  const args = parseInstallArgs(rest);
+  const scope = parseScope(args.scope, 'all');
+  const ctx = makeContext(args.projectDir, undefined);
+  const steps = await runAction(action, { agents: args.agents, scope }, ctx);
+  printSteps(steps);
+  process.exitCode = exitCodeFor(steps);
 };
 
 const runDoctor = async (): Promise<void> => {
   console.log(`Data folder: ${dataDir()}`);
   console.log(`Node: ${process.version}`);
-  await reportPlugin();
   for (const [label, resolve] of [
     ['Official server', officialEntry],
     ['Netlify CLI (login only)', netlifyCliEntry],
@@ -176,6 +251,9 @@ const runDoctor = async (): Promise<void> => {
       console.log(`${label}: NOT FOUND (${messageOf(error)})`);
     }
   }
+
+  console.log('Agents:');
+  printSteps(await runAction('doctor', {}, makeContext(undefined, undefined)));
 
   const registry = await loadRegistry(accountsFile());
   if (registry.accounts.length === 0) {
@@ -194,59 +272,6 @@ const runDoctor = async (): Promise<void> => {
     } catch (error) {
       console.log(`${account.name}: ${messageOf(error)}`);
     }
-  }
-};
-
-// The running CLI. The plugin's MCP server launches this same installed copy.
-const cliPath = (): string => fileURLToPath(import.meta.url);
-
-const flagValue = (rest: string[], flag: string): string | undefined => {
-  const index = rest.indexOf(flag);
-  return index >= 0 ? rest[index + 1] : undefined;
-};
-
-const runInstall = async (rest: string[]): Promise<void> => {
-  const scope = parseScope(flagValue(rest, '--scope'), 'global');
-  if (scope === 'all') {
-    throw new Error('install takes one scope: global, project or local.');
-  }
-  // global installs the marketplace from this package's folder, so the plugin matches the installed version.
-  // project and local install from GitHub, which is safe to record in a repo.
-  const source = flagValue(rest, '--source') ?? (scope === 'global' ? packageRoot() : GITHUB_SOURCE);
-  const dryRun = rest.includes('--dry-run');
-  await installPlugin({
-    scope,
-    source,
-    cliPath: cliPath(),
-    projectDir: flagValue(rest, '--project-dir'),
-    dryRun,
-    log: (line) => console.log(line),
-  });
-  if (dryRun) {
-    console.log('Dry run: nothing was changed.');
-    return;
-  }
-  console.log(`Installed ${PLUGIN_ID} (${scope} scope).`);
-  if (scope !== 'global') {
-    console.log("cli_path is this machine's path. Teammates who clone the repo run install on their own machine.");
-  }
-  console.log('Next: add an account with `multi-account-netlify-mcp add <name>`, then restart Claude Code.');
-};
-
-const selectionFrom = (rest: string[]) => parseScope(flagValue(rest, '--scope'), 'all');
-
-const runUpdate = async (rest: string[]): Promise<void> => {
-  const updated = await updatePlugin({ scope: selectionFrom(rest), projectDir: flagValue(rest, '--project-dir') });
-  for (const where of updated) {
-    console.log(`Refreshed ${PLUGIN_ID} (${where}).`);
-  }
-  console.log('To update the code too, run `npm install -g multi-account-netlify-mcp@latest` first, then this command. Then restart Claude Code.');
-};
-
-const runUninstall = async (rest: string[]): Promise<void> => {
-  const removed = await uninstallPlugin({ scope: selectionFrom(rest), projectDir: flagValue(rest, '--project-dir') });
-  for (const where of removed) {
-    console.log(`Removed ${PLUGIN_ID} (${where}). Accounts and tokens are kept; \`remove <name>\` deletes one.`);
   }
 };
 
@@ -298,9 +323,9 @@ const main = async (): Promise<void> => {
     case 'install':
       return runInstall(rest);
     case 'update':
-      return runUpdate(rest);
+      return runScoped('update', rest);
     case 'uninstall':
-      return runUninstall(rest);
+      return runScoped('uninstall', rest);
     case 'help':
     case '--help':
     case '-h':

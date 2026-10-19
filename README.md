@@ -45,6 +45,30 @@ multi-account-netlify-mcp uninstall --scope local                  # one scope; 
 
 A project install is safe to commit, because it holds the marketplace (from GitHub) and the plugin reference, not your machine's paths. The `cli_path` setting holds this machine's path and is not committed. Each teammate runs `install --scope project` once on their own machine.
 
+### Other agents: Codex, opencode and Antigravity
+
+`install` takes the agents to set up: `claude`, `codex`, `opencode`, `antigravity`, or `all`. With no agent named, it installs into every agent that is set up on this machine.
+
+| Agent | Global | Project | How it is registered |
+|---|---|---|---|
+| Claude Code | yes | yes, and local | the plugin, with `claude plugin` |
+| Codex | yes | yes | `codex mcp add` for global. For a project, a table in `.codex/config.toml`. Codex reads it only when the folder is trusted. |
+| opencode | yes | yes | an entry in `opencode.json`, with a `.bak` copy made before every change |
+| Antigravity | yes | no | `agy mcp add` |
+
+```sh
+multi-account-netlify-mcp install                    # every agent set up here, global
+multi-account-netlify-mcp install codex opencode      # only these two, global
+multi-account-netlify-mcp install --scope project     # every agent set up here, this folder
+multi-account-netlify-mcp install --dry-run           # show the plan, change nothing
+multi-account-netlify-mcp update                      # refresh what is already installed
+multi-account-netlify-mcp uninstall codex             # remove from Codex, in every scope
+```
+
+In a terminal, `install` asks for anything you left out, and shows the exact command before it runs. Scripts and CI pass flags, and nothing is asked. `--yes` skips the final confirmation.
+
+Each agent gets only this server's entry. Other servers and settings in those files are kept. An install never touches a file that is not valid JSON or TOML: it stops and says so. Antigravity gets the server but not the skill, because its skills come from a plugin that needs a setting `agy` cannot set yet.
+
 ### Install through the Claude Code plugin manager
 
 After the npm install, you can also use Claude Code's own plugin commands. The plugin needs the path to the installed CLI, so get it first:
@@ -107,7 +131,7 @@ Then restart Claude Code. `update` refreshes the plugin. The npm command also up
 
 ```sh
 multi-account-netlify-mcp remove work       # once per account; deletes its stored token
-multi-account-netlify-mcp uninstall         # removes the plugin from every scope here (add --scope to pick one)
+multi-account-netlify-mcp uninstall         # removes this server from every agent and scope here (add an agent name or --scope to pick)
 npm uninstall -g multi-account-netlify-mcp
 ```
 

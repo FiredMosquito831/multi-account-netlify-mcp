@@ -1,0 +1,53 @@
+{
+  "name": "multi-account-netlify-mcp",
+  "version": "0.1.0",
+  "description": "Multi-account Netlify MCP for Claude Code: one official @netlify/mcp server per account, with tool calls sent to one, several or all accounts.",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "claude-code-plugin",
+    "netlify",
+    "multi-account",
+    "deploy"
+  ],
+  "author": "FiredMosquito831 (https://github.com/FiredMosquito831)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FiredMosquito831/multi-account-netlify-mcp.git"
+  },
+  "homepage": "https://github.com/FiredMosquito831/multi-account-netlify-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/FiredMosquito831/multi-account-netlify-mcp/issues"
+  },
+  "private": true,
+  "type": "module",
+  "bin": {
+    "multi-account-netlify-mcp": "./dist/cli.js"
+  },
+  "files": [
+    "dist/*",
+    ".claude-plugin/",
+    "plugins/",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test \"dist/test/*.test.js\""
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "@napi-rs/keyring": "^2.1.2",
+    "@netlify/mcp": "^1.19.0",
+    "netlify-cli": "27.13.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "^5.9.3"
+  }
+}

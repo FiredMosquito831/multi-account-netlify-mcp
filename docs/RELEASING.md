@@ -27,12 +27,21 @@ The tests check the first three. The release workflow checks the tag against `pa
 
 2. **Update the docs in the same change.** Add the version to `CHANGELOG.md`, and check [README.md](../README.md) and the other docs against what the release contains.
 
-3. **Test.**
+3. **Test, then check for secrets and personal data.**
 
    ```sh
    npm test
    npm pack --dry-run
    ```
+
+   The repository is public, so check before every push. Put your own values in your shell, not in this file. `SCAN_PATTERNS` holds your email address, your home folder paths, and any token you have used here.
+
+   ```sh
+   git log --format='%an <%ae>' | sort -u
+   git grep -n -I -E "$SCAN_PATTERNS|nfp_[A-Za-z0-9]{30,}|npm_[A-Za-z0-9]{30,}|ghp_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|AIza[0-9A-Za-z_-]{30,}|BEGIN [A-Z ]*PRIVATE KEY" -- . ':!package-lock.json'
+   ```
+
+   The first command must show only the GitHub no-reply address for the owner. The second must print nothing. The token patterns need 30 or more characters, so short fake tokens in tests do not match. Any match is a reason to stop and look before you push.
 
 4. **Commit with `[skip ci]` in the message.** The release workflow runs the same tests before it publishes. Without `[skip ci]`, a push to `main` starts the publish workflow as well, and two runs would try to publish the same version.
 
@@ -70,6 +79,7 @@ The tests check the first three. The release workflow checks the tag against `pa
 - **Repeat runs are safe.** If the version is already on npm, the publish job does nothing and says so.
 - **Triggers.** The `npm` workflow also runs on a push to `main` that changes the package. It publishes only when the version is new. A push that changes the code but not the version publishes nothing.
 - **Manual runs.** Actions, then `npm`, then Run workflow, with a `tag` such as `vX.Y.Z`. Use this to retry a publish for an existing tag.
+- **Pinned actions.** The workflows pin `actions/checkout` and `actions/setup-node` to commit SHAs, with the tag in a comment. To update one, resolve the new tag with `gh api repos/actions/checkout/commits/v7 --jq .sha` (or the other action and tag), then change the SHA and the comment together.
 
 ## When something goes wrong
 

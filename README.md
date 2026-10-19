@@ -47,8 +47,15 @@ Ask Claude as usual. Each Netlify tool takes an optional `account` argument:
 |---|---|
 | left out | the default account (set with `default <name>`). With no default and several accounts, Claude is asked to choose. |
 | `work` | the call runs on that account only, and the result is the official result. |
-| `work,personal` | the call runs on each listed account. The result has one entry per account. |
-| `all` | the call runs on every account. |
+| `work,personal` | reads run on each listed account. Writes are refused: name one account. |
+| `all` | reads run on every account. Writes are refused: name one account. |
+
+Which operations can span accounts depends on the operation:
+
+- **Reads with no id** (your user, your teams, the project list, extensions): every account answers, and every answer is shown.
+- **Reads that need an id** (a project, deploy, team, or site): every account is asked, and only the one that owns the id answers. The others are listed under `notFoundIn`.
+- **Reads of sensitive data** (env var values, form submissions, request logs): these can run on all accounts.
+- **Writes** (deploy, create or rename projects, forms, extensions, changing env vars, deleting submissions): one account only. A list or `all` is refused.
 
 One account failing does not stop the others. In a multi-account result, each account has `ok` and either `result` or `error`.
 

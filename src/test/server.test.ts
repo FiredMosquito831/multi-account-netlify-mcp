@@ -103,7 +103,7 @@ describe('mux server', () => {
     try {
       const result = (await session.client.callTool({
         name: 'netlify-project-services-reader',
-        arguments: { account: 'all' },
+        arguments: { account: 'all', selectSchema: { operation: 'get-projects' } },
       })) as CallToolResult;
       const body = JSON.parse(textOf(result)) as { accounts: Record<string, { ok: boolean; error?: string }> };
       assert.notEqual(result.isError, true);
@@ -120,7 +120,7 @@ describe('mux server', () => {
     try {
       const result = (await session.client.callTool({
         name: 'netlify-project-services-reader',
-        arguments: { account: 'one,two' },
+        arguments: { account: 'one,two', selectSchema: { operation: 'get-projects' } },
       })) as CallToolResult;
       assert.equal(result.isError, true);
       const body = JSON.parse(textOf(result)) as { accounts: Record<string, { ok: boolean; result: CallToolResult }> };

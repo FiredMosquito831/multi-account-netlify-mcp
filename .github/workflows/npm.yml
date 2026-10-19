@@ -1,0 +1,78 @@
+name: npm
+
+# Runs the tests, then publishes the npm package when its version is new on npm.
+# To publish a new version: bump "version" in package.json, plugins/multi-account-netlify/.claude-plugin/plugin.json
+# and .claude-plugin/marketplace.json (the tests check that they match), then push to main.
+# Trusted publishing (OIDC): no npm token is stored in GitHub.
+#
+# One-time setup on npmjs.com: package multi-account-netlify-mcp -> Settings -> Trusted Publisher -> GitHub Actions:
+#   Organization or user: FiredMosquito831
+#   Repository:           multi-account-netlify-mcp
+#   Workflow filename:    npm.yml
+#   Environment:          leave empty
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "package.json"
+      - "package-lock.json"
+      - "tsconfig.json"
+      - "src/**"
+      - "plugins/**"
+      - ".claude-plugin/**"
+      - "README.md"
+      - "LICENSE"
+      - "NOTICE"
+      - ".github/workflows/npm.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Tests
+        run: npm test
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Use npm with trusted publishing support (needs 11.5.1 or newer)
+        run: npm install -g npm@latest
+
+      - name: Install
+        run: npm ci
+
+      - name: Publish when the version is new
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view "$NAME@$VERSION" version > /dev/null 2>&1; then
+            echo "$NAME@$VERSION is already on npm. Bump the version in package.json to publish."
+          else
+            npm publish --provenance --access public
+          fi

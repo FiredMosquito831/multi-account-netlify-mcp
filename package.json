@@ -23,7 +23,7 @@
   "license": "Apache-2.0",
   "type": "module",
   "bin": {
-    "multi-account-netlify-mcp": "./dist/cli.js"
+    "multi-account-netlify-mcp": "dist/cli.js"
   },
   "files": [
     "dist/",

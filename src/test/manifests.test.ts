@@ -49,7 +49,7 @@ describe('plugin manifests', () => {
 
   it('the launcher points at the built CLI that the package bin exposes', async () => {
     const pkg = await readJson('package.json');
-    assert.equal(pkg.bin['multi-account-netlify-mcp'], './dist/cli.js');
+    assert.equal(pkg.bin['multi-account-netlify-mcp'], 'dist/cli.js');
     const cliSource = await readFile(path.join(root, 'src/cli.ts'), 'utf8');
     assert.match(cliSource, /^#!\/usr\/bin\/env node/);
   });

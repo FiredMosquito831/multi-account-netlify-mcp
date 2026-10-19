@@ -4,7 +4,7 @@ Use several Netlify accounts from Claude Code at the same time. This module runs
 
 Send a call to one account, to a list of accounts, or to all of them. Each account is added with its own Netlify login, and its token is stored in the operating system's credential store.
 
-Status: version 0.1.0, not yet published to npm. Tested on Windows only.
+Status: version 0.1.0. Tested on Windows only.
 
 ## Install
 
@@ -107,4 +107,4 @@ The tests include checks against the real `@netlify/mcp` package, so they fail i
 
 ## License
 
-To be decided before publishing.
+Apache License 2.0. See [LICENSE](LICENSE) and [NOTICE](NOTICE).

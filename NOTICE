@@ -1,0 +1,14 @@
+multi-account-netlify-mcp
+Copyright 2026 FiredMosquito831
+
+Project:    multi-account-netlify-mcp
+Author:     FiredMosquito831
+Repository: https://github.com/FiredMosquito831/multi-account-netlify-mcp
+Profile:    https://github.com/FiredMosquito831
+License:    Apache License, Version 2.0 (SPDX: Apache-2.0). The full text is in the LICENSE file.
+
+This project uses the official @netlify/mcp package (ISC license) as a dependency. That package is maintained by Netlify and is not part of this project.
+
+Netlify is a trademark of Netlify, Inc. This project is not affiliated with or endorsed by Netlify.
+
+Keep this notice in every copy, derived work, package and distribution of multi-account-netlify-mcp, as Apache License 2.0 section 4(d) requires. It is for attribution only and does not change the license.

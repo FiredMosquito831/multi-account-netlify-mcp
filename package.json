@@ -20,7 +20,7 @@
   "bugs": {
     "url": "https://github.com/FiredMosquito831/multi-account-netlify-mcp/issues"
   },
-  "private": true,
+  "license": "Apache-2.0",
   "type": "module",
   "bin": {
     "multi-account-netlify-mcp": "./dist/cli.js"
@@ -30,7 +30,9 @@
     "!dist/test/",
     ".claude-plugin/",
     "plugins/",
-    "README.md"
+    "README.md",
+    "LICENSE",
+    "NOTICE"
   ],
   "engines": {
     "node": ">=22"
